@@ -6,105 +6,174 @@ Este repositorio contiene el diseño completo de la base de datos **Petshop**, u
 
 ---
 
+## 🧩 Modelo Entidad-Relación
+
+> Puedes reemplazar la ruta con tu imagen local o en línea:
+
+![Modelo Entidad-Relación](/assets/DiagramaER.png)
+
+---
+
+## 🔄 Flujo de Datos y Relaciones entre Tablas
+
+El modelo Petshop está diseñado con una estructura relacional clara y modular, que permite administrar tanto el comercio electrónico como el punto de venta físico de forma eficiente. A continuación se describe cómo fluye la información a través del sistema:
+
+### 1. 👤 Registro y autenticación de usuarios
+
+**Tablas involucradas:**
+- `users` (PK: `id`)
+- `carts` (PK: `id`)
+- `wishlists` (PK: `id`)
+
+**Flujo:**
+1. Al crear un usuario, se genera automáticamente un carrito (`carts`) y una lista de deseos (`wishlists`).
+2. El usuario queda vinculado a su carrito mediante `users.cart_id` y a su wishlist por medio de procedimientos o lógica adicional.
+
+---
+
+### 2. 🔎 Exploración del catálogo
+
+**Tablas involucradas:**
+- `products` (PK: `id`)
+- `product_thumbnails` (FK: `product_id → products.id`)
+
+**Flujo:**
+1. El usuario consulta la lista de productos.
+2. Cada producto puede tener varias imágenes adicionales en `product_thumbnails`.
+
+---
+
+### 3. 🛒 Carrito y Wishlist
+
+**Tablas involucradas:**
+- `cart_products` (FK: `cart_id`, `product_id`)
+- `wishlist_products` (FK: `wishlist_id`, `product_id`)
+
+**Flujo:**
+1. Al agregar productos, se insertan en `cart_products` o `wishlist_products`.
+2. Cada registro asocia una cantidad al producto en el carrito.
+
+---
+
+### 4. 🧾 Compra online
+
+**Tablas involucradas:**
+- `tickets_online` (FK: `purchaser_id`, `cart_id`)
+- `ticket_products` (FK: `ticket_id`, `product_id`)
+- `payments` (FK: `ticket_id`)
+
+**Flujo:**
+1. El usuario realiza checkout: se genera un ticket (`tickets_online`).
+2. Los productos comprados se guardan en `ticket_products`.
+3. Se registra el pago con `payments`.
+
+---
+
+### 5. 🧾 Compra en tienda física
+
+**Tablas involucradas:**
+- `tickets_tienda_fisica` (FK: `purchaser_id`, `seller_id`, `store_location_id`)
+- `ticket_products` (compartida con ecommerce, pero con `store_type = 'tienda_fisica'`)
+
+**Flujo:**
+1. Un vendedor procesa la venta.
+2. Se registra en `tickets_tienda_fisica` y los productos se vinculan en `ticket_products`.
+
+---
+
+### 6. 💳 Pagos
+
+**Tabla involucrada:**
+- `payments`
+
+**Flujo:**
+1. Cada compra se vincula con un pago mediante `ticket_id`.
+2. Se detalla el método, estado y código de transacción.
+
+---
+
+### 7. 📦 Inventario
+
+**Tabla involucrada:**
+- `inventory_movements`
+
+**Flujo:**
+1. Las ventas registran salidas (`salida`).
+2. El abastecimiento se registra como entrada (`entrada`).
+3. Las devoluciones como `devolución`.
+4. Estas acciones modifican el campo `stock` en `products`.
+
+---
+
+### 8. 🧭 Sucursales
+
+**Tablas involucradas:**
+- `store_locations`
+- `tickets_tienda_fisica`
+
+**Flujo:**
+1. Cada venta en tienda física se vincula a una sucursal mediante `store_location_id`.
+
+---
+
 ## 🧱 Estructura de Tablas
 
-* **`products`**: Información de productos disponibles, incluyendo precio, stock, categoría, tipo, marca, etc.
-* **`users`**: Registro de usuarios con sus datos personales, roles, géneros y suscripción al boletín.
-* **`tickets_online`**: Representa las compras hechas en la tienda virtual.
-* **`ticket_products`**: Detalla los productos comprados por ticket (tienda online y física).
-* **`carts`**: Carritos de compras por usuario.
-* **`cart_products`**: Productos asociados a cada carrito.
-* **`wishlists`**: Listas de deseos por usuario.
-* **`wishlist_products`**: Productos en cada wishlist.
-* **`product_thumbnails`**: Galería de imágenes adicionales por producto.
-* **`tickets_tienda_fisica`**: Tickets de compras presenciales.
-* **`auditoria_tickets`**: Historial de cambios de estado de los tickets.
-* **`auditoria_eliminacion_productos`**: Registro de productos eliminados.
+* **`products`**, **`users`**, **`tickets_online`**, **`ticket_products`**, **`carts`**, **`cart_products`**, **`wishlists`**, **`wishlist_products`**, **`product_thumbnails`**, **`tickets_tienda_fisica`**, **`auditoria_tickets`**, **`auditoria_eliminacion_productos`**
 
 ---
 
 ## ⚙️ Procedimientos Almacenados
 
-Gestión avanzada con `PROCEDURES` para:
-
-* Carrito: `add_product_to_cart`, `get_products_from_cart`, `delete_product_from_cart`, `empty_cart`, `get_cart_by_id`
-* Wishlist: `add_product_to_wishlist`, `get_products_from_wishlist`, `delete_product_from_wishlist`, `empty_wishlist`, `get_wishlist_by_id`
-* Usuarios: `create_user`, `update_user`, `delete_user`, `change_user_role`, `get_all_users`
-* Tickets: `create_ticket`, `update_ticket_status`, `pay_ticket`, `pay_cancel`, `pay_process`, `delete_ticket`
-* Consultas auxiliares: `find_user_by_cart_id`, `get_user_by_id`, `get_all_tickets`, `get_ticket_by_id`
-
-📌 **Ejemplo**:
+Procedimientos como:
 
 ```sql
+CALL add_product_to_cart('cart_id', 'product_id', 1);
 CALL create_user('uuid-user', 'Carlos', 'Pérez', ...);
-CALL get_products_from_cart('uuid-cart');
 ```
+
+Consulta el README original para la lista completa.
 
 ---
 
 ## 🧮 Funciones SQL
 
-Funciones útiles para reportes y analítica:
+Funciones como:
 
-* `obtener_ingresos_totales()` → Total en ingresos por ventas.
-* `mayor_venta()` → Ticket con mayor valor.
-* `menor_venta()` → Ticket con menor valor.
-* `numero_clientes()` → Clientes únicos que han comprado.
-* `numero_ventas()` → Total de tickets pagados.
-* `promedio_ventas()` → Promedio de ventas pagadas.
+```sql
+SELECT obtener_ingresos_totales();
+SELECT mayor_venta();
+SELECT numero_clientes();
+```
 
 ---
 
 ## 👁️ Vistas SQL
 
-Vistas preconstruidas para reportes y dashboard:
+Reportes como:
 
-* `top_productos_mas_vendidos` → Top 10 productos más vendidos.
-* `productos_menos_vendidos` → Top 10 productos menos vendidos.
-* `destacados_top_ventas` → Productos destacados más vendidos.
-* `resumen_ventas_productos` → Totales vendidos e ingresos por producto.
-* `ingresos_por_tienda` → Ingresos agrupados por tipo de tienda.
-* `rango_ventas_productos` → Máximo y mínimo ventas por producto.
-* `compras_por_usuario` → Total de compras e inversión por usuario.
+- `top_productos_mas_vendidos`
+- `compras_por_usuario`
+- `resumen_ventas_productos`
 
 ---
 
 ## 🧐 Triggers y Auditoría
 
-Automatizaciones y control de integridad:
+Incluye triggers para:
 
-* `tr_actualizar_producto_fecha` → Actualiza `updated_at` si cambian `stock` o `price`.
-* `tr_cambio_estado_ticket` → Registra cada cambio de estado en la tabla `auditoria_tickets`.
-* `tr_prevenir_stock_negativo` → Impide insertar productos con stock negativo.
-* `tr_auditar_eliminacion_producto` → Registra en auditoría al eliminar un producto.
-* `tr_prevenir_borrado_admin` → Impide eliminar usuarios con rol `admin`.
+- Auditoría de cambios de estado en tickets.
+- Prevención de eliminación de administradores.
+- Registro de productos eliminados.
 
 ---
 
 ## 🔐 Control de Acceso (Usuarios y Permisos)
 
-Usuarios SQL con diferentes niveles de privilegios:
-
 | Usuario            | Privilegios                              |
-| ------------------ | ---------------------------------------- |
-| `admin_petshop`    | Todos los privilegios (`ALL PRIVILEGES`) |
-| `vendedor_petshop` | `SELECT`, `INSERT`, `UPDATE`             |
-| `usuario_petshop`  | Solo `SELECT`                            |
-
-📌 Ejemplo:
-
-```sql
-CREATE USER 'admin_petshop'@'%' IDENTIFIED BY 'AdminSeguro123!';
-GRANT ALL PRIVILEGES ON petshop.* TO 'admin_petshop'@'%';
-```
-
----
-
-## 🛠️ Requisitos
-
-* MySQL 8.0 o superior.
-* Cliente MySQL (Workbench, CLI, DBeaver o compatible).
-* Script `petshop_schema.sql` incluido para importación rápida.
+|--------------------|-------------------------------------------|
+| `admin_petshop`    | `ALL PRIVILEGES`                          |
+| `vendedor_petshop` | `SELECT`, `INSERT`, `UPDATE`              |
+| `usuario_petshop`  | `SELECT`                                  |
 
 ---
 
@@ -120,13 +189,8 @@ mysql -u root -p < petshop_schema.sql
 ## 📊 Ejemplos de Consultas
 
 ```sql
--- Total de ingresos
 SELECT obtener_ingresos_totales();
-
--- Compras por usuario
 SELECT * FROM compras_por_usuario;
-
--- Productos más vendidos
 SELECT * FROM top_productos_mas_vendidos;
 ```
 
@@ -134,13 +198,13 @@ SELECT * FROM top_productos_mas_vendidos;
 
 ## 🪪 Licencia
 
-Este proyecto está bajo la Licencia MIT. Puedes usarlo, modificarlo y adaptarlo libremente.
+Este proyecto está bajo la Licencia MIT.
 
 ---
 
 ## 👨‍💼 Autor
 
-**Gabriel Castro Ramírez**
-📧 [gbrlcstr@hotmail.com](mailto:gbrlcstr@hotmail.com)
-🔗 [LinkedIn](https://www.linkedin.com/in/gabrielcastro1221)
+**Gabriel Castro Ramírez**  
+📧 [gbrlcstr@hotmail.com](mailto:gbrlcstr@hotmail.com)  
+🔗 [LinkedIn](https://www.linkedin.com/in/gabrielcastro1221)  
 📁 [Portafolio](https://github.com/GabrielCastro1221)
